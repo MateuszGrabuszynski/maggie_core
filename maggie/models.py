@@ -38,20 +38,22 @@ class Currency(models.Model):
 
 
 class Vault(models.Model):
-    class VaultType(models.TextChoices):
-        CURRENT = 'current', _('Current')
-        SAVINGS = 'savings', _('Savings')
-        SAFE = 'safe', _('Safe')
-    type = models.CharField(
-        choices=VaultType.choices,
-        default=VaultType.CURRENT
-    )
-
     name = models.CharField()
     balance = models.IntegerField() # most minor (e.g. cents instead of dollars)
     cards = models.ManyToManyField(Card)
     currency = models.ForeignKey(Currency,on_delete=models.RESTRICT,null=False)
     bank = models.ForeignKey(Bank,on_delete=models.RESTRICT,null=True)
+
+    
+    class VaultType(models.TextChoices):
+        CURRENT = 'current', _('Current')
+        SAVINGS = 'savings', _('Savings')
+        SAFE = 'safe', _('Safe')
+
+    type = models.CharField(
+        choices=VaultType.choices,
+        default=VaultType.CURRENT
+    )
 
     def get_least_minor_balance(self):
         return self.balance/(10**self.currency.minor_units)
@@ -67,21 +69,23 @@ class Vault(models.Model):
 
 
 class EntityAddress(models.Model):
-    class AddressType(models.TextChoices):
-        STREET = 'st', _('Street')
-        ALLEY = 'al', _('Alley')
-        NBHD = 'nbhd', _('Neighborhood')
-    address_type = models.CharField(
-        choices=AddressType.choices,
-        default=AddressType.STREET
-    )
-
     street_name = models.CharField()
     building_number = models.IntegerField()
     postal_code = models.CharField()
     city = models.CharField()
     latitude = models.DecimalField(decimal_places=6,max_digits=9,null=True)
     longitude = models.DecimalField(decimal_places=6,max_digits=9,null=True)
+
+
+    class AddressType(models.TextChoices):
+        STREET = 'st', _('Street')
+        ALLEY = 'al', _('Alley')
+        NBHD = 'nbhd', _('Neighborhood')
+
+    type = models.CharField(
+        choices=AddressType.choices,
+        default=AddressType.STREET
+    )
 
 
 class EntityChain(models.Model):
@@ -98,7 +102,7 @@ class Entity(models.Model):
 
 class Product(models.Model):
     name = models.CharField()
-    EAN = models.CharField(null=True)
+    ean_code = models.CharField(null=True)
     amount = models.DecimalField()
 
     class AmountTypes(models.TextChoices):
