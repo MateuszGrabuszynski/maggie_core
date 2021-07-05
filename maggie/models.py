@@ -44,7 +44,7 @@ class Vault(models.Model):
     currency = models.ForeignKey(Currency,on_delete=models.RESTRICT,null=False)
     bank = models.ForeignKey(Bank,on_delete=models.RESTRICT,null=True)
 
-    
+
     class VaultType(models.TextChoices):
         CURRENT = 'current', _('Current')
         SAVINGS = 'savings', _('Savings')
@@ -138,6 +138,13 @@ class Product(models.Model):
         choices=TransactionCategory.choices,
         max_length=4
     )
+
+
+class Payment(models.Model):
+    amount = models.IntegerField()
+    transaction = models.ForeignKey(Transaction)
+    payment_way = models.ForeignKey(PaymentWay)
+    vault = models.ForeignKey(Vault)
 
 
 class Transaction(models.Model):
