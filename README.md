@@ -1,5 +1,10 @@
 # Maggie (core)
 Below readme is just a draft. To be finished.
+
+## Database Model
+High level design of the database.
+![database model](./_docs/images/db_model.png)
+
 ## Components
 1) Dashboard & Admin panel (Django + Django Admin)
 2) Main data database (PostgreSQL)
