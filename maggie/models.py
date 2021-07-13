@@ -3,47 +3,46 @@ from django.db import models
 
 class PaymentProcessor(models.Model):
     name = models.CharField()
-    logo = models.ImageField()
+    image = models.ImageField()
 
 
 class PaymentWay(models.Model):
     name = models.CharField()
-    icon = models.ImageField()
-    payment_processor = models.ForeignKey(PaymentProcessor,null=True)
+    image = models.ImageField()
+    payment_processor = models.ForeignKey(PaymentProcessor, on_delete=models.RESTRICT, null=True)
 
 
 class Bank(models.Model):
     name = models.CharField()
-    logo = models.ImageField()
+    image = models.ImageField()
 
 
 class CardIssuer(models.Model):
     name = models.CharField()
-    logo = models.ImageField()
+    image = models.ImageField()
 
 
 class Card(models.Model):
     name = models.CharField()
     is_virtual = models.BooleanField(default=False)
     is_temporary = models.BooleanField(default=False)
-    issuer = models.ForeignKey(CardIssuer,on_delete=models.RESTRICT,null=True)
+    issuer = models.ForeignKey(CardIssuer, on_delete=models.RESTRICT, null=True)
 
 
 class Currency(models.Model):
     name = models.CharField()
-    minor_units = models.IntegerField() # number of digits after decimal separator
-    iso_code = models.CharField() # ISO 4217, e.g. PLN; or pseudo-ISO, e.g. BTC for Bitcoin
+    minor_units = models.IntegerField()  # number of digits after decimal separator
+    iso_code = models.CharField()  # ISO 4217, e.g. PLN; or pseudo-ISO, e.g. BTC for Bitcoin
     symbol = models.CharField()
-    if_symbol_precedes_amount = models.BooleanField() # true = $300, false = 300zł
+    if_symbol_precedes_amount = models.BooleanField()  # true = $300, false = 300zł
 
 
 class Vault(models.Model):
     name = models.CharField()
-    balance = models.IntegerField() # most minor (e.g. cents instead of dollars)
+    balance = models.IntegerField()  # most minor (e.g. cents instead of dollars)
     cards = models.ManyToManyField(Card)
-    currency = models.ForeignKey(Currency,on_delete=models.RESTRICT,null=False)
-    bank = models.ForeignKey(Bank,on_delete=models.RESTRICT,null=True)
-
+    currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, null=False)
+    bank = models.ForeignKey(Bank, on_delete=models.RESTRICT, null=True)
 
     class VaultType(models.TextChoices):
         CURRENT = 'current', _('Current')
@@ -56,7 +55,7 @@ class Vault(models.Model):
     )
 
     def get_least_minor_balance(self):
-        return self.balance/(10**self.currency.minor_units)
+        return self.balance / (10 ** self.currency.minor_units)
 
     def get_iso_balance(self):
         return f'{self.get_least_minor_balance(self)} {self.currency.iso_code}'
@@ -73,9 +72,8 @@ class EntityAddress(models.Model):
     building_number = models.IntegerField()
     postal_code = models.CharField()
     city = models.CharField()
-    latitude = models.DecimalField(decimal_places=6,max_digits=9,null=True)
-    longitude = models.DecimalField(decimal_places=6,max_digits=9,null=True)
-
+    latitude = models.DecimalField(decimal_places=6, max_digits=9, null=True)
+    longitude = models.DecimalField(decimal_places=6, max_digits=9, null=True)
 
     class AddressType(models.TextChoices):
         STREET = 'st', _('Street')
@@ -95,8 +93,8 @@ class EntityChain(models.Model):
 
 class Entity(models.Model):
     name = models.CharField()
-    address = models.ForeignKey(Address,on_delete=models.RESTRICT,null=True)
-    chain = models.ForeignKey(EntityChain,on_delete=models.SET_NULL,null=True)
+    address = models.ForeignKey(EntityAddress, on_delete=models.RESTRICT, null=True)
+    chain = models.ForeignKey(EntityChain, on_delete=models.SET_NULL, null=True)
     website = models.URLField()
 
 
@@ -116,12 +114,12 @@ class Product(models.Model):
         HOURS = 'hr', _('Hours')
         MONTHS = 'mo', _('Months')
         YEARS = 'yr', _('Years')
+        PAGES = 'pgs', _('Pages')
 
     amount_type = models.CharField(
         choices=AmountTypes.choices,
         default=AmountTypes.PIECES
     )
-
 
     class ProductCategory(models.TextChoices):
         SUPPORT = 'supp', _('Support')
@@ -142,19 +140,18 @@ class Product(models.Model):
 
 class Payment(models.Model):
     amount = models.IntegerField()
-    transaction = models.ForeignKey(Transaction)
-    payment_way = models.ForeignKey(PaymentWay)
-    vault = models.ForeignKey(Vault)
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, null=False)
+    payment_way = models.ForeignKey(PaymentWay, on_delete=models.CASCADE, null=False)
+    vault = models.ForeignKey(Vault, on_delete=models.RESTRICT, null=FALSE)
 
 
 class Transaction(models.Model):
     name = models.CharField()
-    timestamp = models.DateTimeField(auto_now=False,auto_add_now=False)
-    sender = models.ForeignKey(Entity)
-    recipient = models.ForeignKey(Entity)
-    product = models.ManyToManyField(Product,on_delete=models.RESTRICT,null=True)
+    timestamp = models.DateTimeField(auto_now=False, auto_add_now=False)
+    sender = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=False)
+    recipient = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=False)
+    product = models.ManyToManyField(Product, on_delete=models.RESTRICT, null=True)
     receipt_image = models.ImageField()
-
 
     class TransactionType(models.TextChoices):
         PURCHASE = 'pur', _('Purchase')
