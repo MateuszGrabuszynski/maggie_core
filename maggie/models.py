@@ -1,44 +1,49 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class PaymentProcessor(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     image = models.ImageField()
 
 
 class PaymentWay(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     image = models.ImageField()
     payment_processor = models.ForeignKey(PaymentProcessor, on_delete=models.RESTRICT, null=True)
 
 
 class Bank(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     image = models.ImageField()
 
 
 class CardIssuer(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     image = models.ImageField()
 
 
 class Card(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     is_virtual = models.BooleanField(default=False)
     is_temporary = models.BooleanField(default=False)
     issuer = models.ForeignKey(CardIssuer, on_delete=models.RESTRICT, null=True)
+    last_four_digits = models.CharField(max_length=4, null=True)
 
 
 class Currency(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     minor_units = models.IntegerField()  # number of digits after decimal separator
-    iso_code = models.CharField()  # ISO 4217, e.g. PLN; or pseudo-ISO, e.g. BTC for Bitcoin
-    symbol = models.CharField()
+    iso_code = models.CharField(max_length=10)  # ISO 4217, e.g. PLN; or pseudo-ISO, e.g. BTC for Bitcoin
+    symbol = models.CharField(max_length=10)
     if_symbol_precedes_amount = models.BooleanField()  # true = $300, false = 300zł
+
+    class Meta:
+        verbose_name_plural = 'Currencies'
 
 
 class Vault(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     balance = models.IntegerField()  # most minor (e.g. cents instead of dollars)
     cards = models.ManyToManyField(Card)
     currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, null=False)
@@ -51,7 +56,8 @@ class Vault(models.Model):
 
     type = models.CharField(
         choices=VaultType.choices,
-        default=VaultType.CURRENT
+        default=VaultType.CURRENT,
+        max_length=10
     )
 
     def get_least_minor_balance(self):
@@ -68,10 +74,10 @@ class Vault(models.Model):
 
 
 class EntityAddress(models.Model):
-    street_name = models.CharField()
+    street_name = models.CharField(max_length=255)
     building_number = models.IntegerField()
-    postal_code = models.CharField()
-    city = models.CharField()
+    postal_code = models.CharField(max_length=10)
+    city = models.CharField(max_length=255)
     latitude = models.DecimalField(decimal_places=6, max_digits=9, null=True)
     longitude = models.DecimalField(decimal_places=6, max_digits=9, null=True)
 
@@ -82,26 +88,30 @@ class EntityAddress(models.Model):
 
     type = models.CharField(
         choices=AddressType.choices,
-        default=AddressType.STREET
+        default=AddressType.STREET,
+        max_length=10
     )
 
 
 class EntityChain(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     website = models.URLField()
 
 
 class Entity(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     address = models.ForeignKey(EntityAddress, on_delete=models.RESTRICT, null=True)
     chain = models.ForeignKey(EntityChain, on_delete=models.SET_NULL, null=True)
     website = models.URLField()
 
+    class Meta:
+        verbose_name_plural = 'Entities'
+
 
 class Product(models.Model):
-    name = models.CharField()
-    ean_code = models.CharField(null=True)
-    amount = models.DecimalField()
+    name = models.CharField(max_length=255)
+    ean_code = models.CharField(max_length=255, null=True)
+    amount = models.DecimalField(max_digits=20, decimal_places=6)
 
     class AmountTypes(models.TextChoices):
         PIECES = 'pcs', _('Pieces')
@@ -118,7 +128,8 @@ class Product(models.Model):
 
     amount_type = models.CharField(
         choices=AmountTypes.choices,
-        default=AmountTypes.PIECES
+        default=AmountTypes.PIECES,
+        max_length=5
     )
 
     class ProductCategory(models.TextChoices):
@@ -133,24 +144,21 @@ class Product(models.Model):
         OTHER = 'othr', _('Other')
 
     category = models.CharField(
-        choices=TransactionCategory.choices,
+        choices=ProductCategory.choices,
         max_length=4
     )
 
 
-class Payment(models.Model):
-    amount = models.IntegerField()
-    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, null=False)
-    payment_way = models.ForeignKey(PaymentWay, on_delete=models.CASCADE, null=False)
-    vault = models.ForeignKey(Vault, on_delete=models.RESTRICT, null=FALSE)
-
-
 class Transaction(models.Model):
-    name = models.CharField()
-    timestamp = models.DateTimeField(auto_now=False, auto_add_now=False)
-    sender = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=False)
-    recipient = models.ForeignKey(Entity, on_delete=models.SET_NULL, null=False)
-    product = models.ManyToManyField(Product, on_delete=models.RESTRICT, null=True)
+    name = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(auto_now=False, auto_now_add=False)
+    sender = models.ForeignKey(Entity,
+                               related_name="%(app_label)s_%(class)s_related",
+                               related_query_name="%(app_label)s_%(class)ss",
+                               on_delete=models.RESTRICT,
+                               null=False)
+    recipient = models.ForeignKey(Entity, on_delete=models.RESTRICT, null=False)
+    product = models.ManyToManyField(Product)
     receipt_image = models.ImageField()
 
     class TransactionType(models.TextChoices):
@@ -169,3 +177,10 @@ class Transaction(models.Model):
         default=TransactionType.PURCHASE,
         max_length=3
     )
+
+
+class Payment(models.Model):
+    amount = models.IntegerField()
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, null=False)
+    payment_way = models.ForeignKey(PaymentWay, on_delete=models.CASCADE, null=False)
+    vault = models.ForeignKey(Vault, on_delete=models.RESTRICT, null=False)
