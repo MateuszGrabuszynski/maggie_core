@@ -6,21 +6,33 @@ class PaymentProcessor(models.Model):
     name = models.CharField(max_length=255)
     image = models.ImageField()
 
+    def __str__(self):
+        return self.name
+
 
 class PaymentWay(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField()
+    image = models.ImageField(blank=True, null=True)
     payment_processor = models.ForeignKey(PaymentProcessor, on_delete=models.RESTRICT, null=True)
+
+    def __str__(self):
+        return f'{self.name}/{self.payment_processor}'
 
 
 class Bank(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField()
+    image = models.ImageField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class CardIssuer(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField()
+    image = models.ImageField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Card(models.Model):
@@ -29,6 +41,13 @@ class Card(models.Model):
     is_temporary = models.BooleanField(default=False)
     issuer = models.ForeignKey(CardIssuer, on_delete=models.RESTRICT, null=True)
     last_four_digits = models.CharField(max_length=4, null=True)
+
+    def __str__(self):
+        return f'{"[V]" if self.is_virtual else ""}' \
+               f'{"[T]" if self.is_temporary else ""}' \
+               f'[{self.issuer}]' \
+               f'[{self.last_four_digits}]' \
+               f' {self.name}'
 
 
 class Currency(models.Model):
@@ -40,6 +59,9 @@ class Currency(models.Model):
 
     class Meta:
         verbose_name_plural = 'Currencies'
+
+    def __str__(self):
+        return self.iso_code
 
 
 class Vault(models.Model):
@@ -59,6 +81,9 @@ class Vault(models.Model):
         default=VaultType.CURRENT,
         max_length=10
     )
+
+    def __str__(self):
+        return self.name
 
     def get_least_minor_balance(self):
         return self.balance / (10 ** self.currency.minor_units)
@@ -92,10 +117,16 @@ class EntityAddress(models.Model):
         max_length=10
     )
 
+    def __str__(self):
+        return f'{self.street_name} {self.type}, {self.city}'
+
 
 class EntityChain(models.Model):
     name = models.CharField(max_length=255)
     website = models.URLField()
+
+    def __str__(self):
+        return self.name
 
 
 class Entity(models.Model):
@@ -106,6 +137,9 @@ class Entity(models.Model):
 
     class Meta:
         verbose_name_plural = 'Entities'
+
+    def __str__(self):
+        return f'{self.chain} {self.name} | {self.address}'
 
 
 class Product(models.Model):
@@ -148,6 +182,9 @@ class Product(models.Model):
         max_length=4
     )
 
+    def __str__(self):
+        return f'{self.amount} {self.amount_type} of {self.name}'
+
 
 class Transaction(models.Model):
     name = models.CharField(max_length=255)
@@ -159,7 +196,7 @@ class Transaction(models.Model):
                                null=False)
     recipient = models.ForeignKey(Entity, on_delete=models.RESTRICT, null=False)
     product = models.ManyToManyField(Product)
-    receipt_image = models.ImageField()
+    receipt_image = models.ImageField(blank=True, null=True)
 
     class TransactionType(models.TextChoices):
         PURCHASE = 'pur', _('Purchase')
@@ -178,9 +215,15 @@ class Transaction(models.Model):
         max_length=3
     )
 
+    def __str__(self):
+        return f'{self.name} | from: {self.sender}, to: {self.recipient}'
+
 
 class Payment(models.Model):
     amount = models.IntegerField()
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, null=False)
     payment_way = models.ForeignKey(PaymentWay, on_delete=models.CASCADE, null=False)
     vault = models.ForeignKey(Vault, on_delete=models.RESTRICT, null=False)
+
+    def __str__(self):
+        return f'{self.transaction.name} {self.amount}'
