@@ -1,0 +1,7 @@
+{% extends "maggie/base.html" %}
+
+{% block content %}
+    {% for field in form.visible_fields %}
+        {{ field.label_tag }}
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "maggie/base.html" %}
+
+{% block content %}
+<a href="{% url 'maggie:transaction_list' %}">Back to the list</a>
+
+<h2>Name</h2>
+{{ transaction.name }}
+
+<h2>Sender</h2>
+{{ transaction.sender.name }}
+
+<h2>Recipient</h2>
+{{ transaction.recipient.name }}
+
+<h2>Product</h2>
+{{ transaction.product }}
+
+<h2>Type</h2>
+{{ transaction.type }}
+
+<h2>Receipt image</h2>
+<img src="{{ transaction.receipt_image.url }}"/>
+
+{% endblock %}
